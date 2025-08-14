@@ -53,7 +53,7 @@ if st.button("Buy Premium Access") and 'basic_strategy' in st.session_state:
     st.markdown(f"[Pay with Stripe]({session.url})")
 
 # Handle success (check query params)
-query_params = st.experimental_get_query_params()
+query_params = st.query_params()
 session_id = query_params.get('session_id', [None])[0]
 if session_id:
     try:
