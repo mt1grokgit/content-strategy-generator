@@ -77,12 +77,24 @@ if session_id:
                 )
                 detailed_strategy = response.choices[0].message.content
 
+                # Fix Unicode issues by replacing common non-latin characters
+                detailed_strategy = (detailed_strategy
+                                     .replace('\u2019', "'")  # right single quote
+                                     .replace('\u2018', "'")  # left single quote
+                                     .replace('\u201c', '"')  # left double quote
+                                     .replace('\u201d', '"')  # right double quote
+                                     .replace('\u2013', '-')  # en dash
+                                     .replace('\u2014', '--') # em dash
+                                     .replace('\u2026', '...') # ellipsis
+                                     # Add more if needed for other characters
+                )
+
                 # Generate PDF
                 pdf = FPDF()
                 pdf.add_page()
                 pdf.set_font("Arial", size=12)
                 pdf.multi_cell(0, 10, detailed_strategy)
-                pdf_output = pdf.output(dest='S').encode('latin-1')
+                pdf_output = pdf.output(dest='S').encode('latin-1')  # Keep latin-1 after replacements
 
                 # Provide download
                 st.success("Payment successful! Download your detailed PDF below.")
