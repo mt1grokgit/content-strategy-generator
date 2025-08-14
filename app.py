@@ -55,36 +55,41 @@ if st.button("Buy Premium Access") and 'basic_strategy' in st.session_state:
 # Handle success (check query params correctly)
 session_id = st.query_params.get('session_id', [None])[0]
 if session_id:
-    try:
-        checkout_session = stripe.checkout.Session.retrieve(session_id)
-        if checkout_session.payment_status == 'paid':
-            # Generate detailed strategy using metadata
-            detailed_prompt = f"Generate a detailed content strategy for {checkout_session.metadata['keywords']}. Include 10 article ideas, advanced SEO tips, content calendar, and recommend tools like Semrush (affiliate: https://your-affiliate-link.com)."
-            response = client.chat.completions.create(
-                model="deepseek/deepseek-r1:free",
-                messages=[
-                    {"role": "system", "content": "You are a helpful assistant."},
-                    {"role": "user", "content": detailed_prompt}
-                ]
-            )
-            detailed_strategy = response.choices[0].message.content
+    if not session_id or len(session_id) < 20 or not session_id.startswith('cs_'):  # Basic validation
+        st.error("Invalid session ID provided. Please try the payment again.")
+    else:
+        try:
+            checkout_session = stripe.checkout.Session.retrieve(session_id)
+            if checkout_session.payment_status == 'paid':
+                # Generate detailed strategy using metadata
+                detailed_prompt = f"Generate a detailed content strategy for {checkout_session.metadata['keywords']}. Include 10 article ideas, advanced SEO tips, content calendar, and recommend tools like Semrush (affiliate: https://your-affiliate-link.com)."
+                response = client.chat.completions.create(
+                    model="deepseek/deepseek-r1:free",
+                    messages=[
+                        {"role": "system", "content": "You are a helpful assistant."},
+                        {"role": "user", "content": detailed_prompt}
+                    ]
+                )
+                detailed_strategy = response.choices[0].message.content
 
-            # Generate PDF
-            pdf = FPDF()
-            pdf.add_page()
-            pdf.set_font("Arial", size=12)
-            pdf.multi_cell(0, 10, detailed_strategy)
-            pdf_output = pdf.output(dest='S').encode('latin-1')  # Get PDF as bytes
+                # Generate PDF
+                pdf = FPDF()
+                pdf.add_page()
+                pdf.set_font("Arial", size=12)
+                pdf.multi_cell(0, 10, detailed_strategy)
+                pdf_output = pdf.output(dest='S').encode('latin-1')  # Get PDF as bytes
 
-            # Provide download
-            st.success("Payment successful! Download your detailed PDF below.")
-            st.download_button(
-                label="Download Detailed Strategy PDF",
-                data=pdf_output,
-                file_name="detailed_content_strategy.pdf",
-                mime="application/pdf"
-            )
-        else:
-            st.error("Payment not completed.")
-    except Exception as e:
-        st.error(f"Error verifying payment: {str(e)}")
+                # Provide download
+                st.success("Payment successful! Download your detailed PDF below.")
+                st.download_button(
+                    label="Download Detailed Strategy PDF",
+                    data=pdf_output,
+                    file_name="detailed_content_strategy.pdf",
+                    mime="application/pdf"
+                )
+            else:
+                st.error("Payment not completed.")
+        except stripe.error.InvalidRequestError as e:
+            st.error(f"Stripe error: {str(e)}. Check if using test mode and matching keys.")
+        except Exception as e:
+            st.error(f"Error verifying payment: {str(e)}")
