@@ -52,14 +52,16 @@ if st.button("Buy Premium Access") and 'basic_strategy' in st.session_state:
     )
     st.markdown(f"[Pay with Stripe]({session.url})")
 
-# Handle success (using experimental API for potential bug avoidance)
-query_params = st.experimental_get_query_params()
-session_id = query_params.get('session_id', [None])[0]
+# Handle success with st.query_params
+all_params = st.query_params.to_dict()  # Get full dict for diagnostics
+st.write(f"Full query params (diagnostic): {all_params}")  # Log full params
+
+session_id = st.query_params.get('session_id', [None])[0]  # Safe access
+st.write(f"Retrieved session_id (diagnostic): {session_id}")  # Log extracted ID
 
 if session_id:
-    st.write(f"Retrieved session_id: {session_id}")  # Diagnostic logging
     if not session_id or len(session_id) < 20 or not session_id.startswith('cs_'):
-        st.error("Invalid session ID provided. Please try the payment again.")
+        st.error("Invalid session ID provided (possibly truncated). Please try the payment again.")
     else:
         try:
             checkout_session = stripe.checkout.Session.retrieve(session_id)
