@@ -52,12 +52,12 @@ if st.button("Buy Premium Access") and 'basic_strategy' in st.session_state:
     )
     st.markdown(f"[Pay with Stripe]({session.url})")
 
-# Handle success with st.query_params
-all_params = st.query_params.to_dict()  # Get full dict for diagnostics
-st.write(f"Full query params (diagnostic): {all_params}")  # Log full params
+# Handle success with corrected access
+all_params = st.query_params.to_dict()  # Full dict for diagnostics
+st.write(f"Full query params (diagnostic): {all_params}")
 
-session_id = st.query_params.get('session_id', [None])[0]  # Safe access
-st.write(f"Retrieved session_id (diagnostic): {session_id}")  # Log extracted ID
+session_id = st.query_params.get('session_id', None)  # Returns string or None
+st.write(f"Retrieved session_id (diagnostic): {session_id}")
 
 if session_id:
     if not session_id or len(session_id) < 20 or not session_id.startswith('cs_'):
