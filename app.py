@@ -1,15 +1,16 @@
 import streamlit as st
+import os
 from openai import OpenAI
 import stripe
 
-# OpenRouter setup
+# OpenRouter setup using env var
 client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
-    api_key="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"
+    api_key=os.environ["OPENROUTER_API_KEY"]
 )
 
-# Stripe setup (unchanged)
-stripe.api_key = "YOUR_STRIPE_SECRET_KEY"
+# Stripe setup using env var
+stripe.api_key = os.environ["STRIPE_SECRET_KEY"]
 
 st.title("Content Strategy Generator")
 
@@ -29,7 +30,7 @@ if st.button("Generate Strategy (Free Basic)"):
     else:
         st.error("Enter keywords.")
 
-# Premium section (unchanged)
+# Premium section
 st.subheader("Unlock Premium (Detailed PDF Export, $4.99)")
 if st.button("Buy Premium Access"):
     session = stripe.checkout.Session.create(
