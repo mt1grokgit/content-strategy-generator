@@ -52,9 +52,8 @@ if st.button("Buy Premium Access") and 'basic_strategy' in st.session_state:
     )
     st.markdown(f"[Pay with Stripe]({session.url})")
 
-# Handle success (check query params)
-query_params = st.query_params()
-session_id = query_params.get('session_id', [None])[0]
+# Handle success (check query params correctly)
+session_id = st.query_params.get('session_id', [None])[0]
 if session_id:
     try:
         checkout_session = stripe.checkout.Session.retrieve(session_id)
