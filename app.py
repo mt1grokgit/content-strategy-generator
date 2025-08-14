@@ -2,6 +2,7 @@ import streamlit as st
 import os
 from openai import OpenAI
 import stripe
+from fpdf import FPDF
 
 # OpenRouter setup using env var
 client = OpenAI(
@@ -10,7 +11,7 @@ client = OpenAI(
 )
 
 # Stripe setup using env var
-# stripe.api_key = os.environ["STRIPE_SECRET_KEY"]
+stripe.api_key = os.environ["STRIPE_SECRET_KEY"]
 
 st.title("Content Strategy Generator")
 
@@ -20,19 +21,20 @@ keywords = st.text_input("Enter keywords or topic:")
 if st.button("Generate Strategy (Free Basic)"):
     if keywords:
         response = client.chat.completions.create(
-            model="deepseek/deepseek-r1:free",  # Valid free chat model
+            model="deepseek/deepseek-r1:free",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": f"Generate a detailed content strategy for {keywords}. Include 5 article ideas, SEO tips, and recommend tools like Semrush (affiliate link: https://your-affiliate-link.com)."}
+                {"role": "user", "content": f"Generate a basic content strategy for {keywords}. Include 3 article ideas and basic SEO tips. Recommend Semrush (affiliate: https://your-affiliate-link.com)."}
             ]
         )
-        st.write(response.choices[0].message.content)
+        st.session_state.basic_strategy = response.choices[0].message.content
+        st.write(st.session_state.basic_strategy)
     else:
         st.error("Enter keywords.")
 
 # Premium section
 st.subheader("Unlock Premium (Detailed PDF Export, $4.99)")
-if st.button("Buy Premium Access"):
+if st.button("Buy Premium Access") and 'basic_strategy' in st.session_state:
     session = stripe.checkout.Session.create(
         payment_method_types=['card'],
         line_items=[{
@@ -44,7 +46,46 @@ if st.button("Buy Premium Access"):
             'quantity': 1,
         }],
         mode='payment',
-        success_url='https://your-domain.com/success',
-        cancel_url='https://your-domain.com/cancel',
+        success_url=f"{st.secrets['APP_URL']}?session_id={{CHECKOUT_SESSION_ID}}",  # Add to secrets: your app URL
+        cancel_url=st.secrets['APP_URL'],
+        metadata={'keywords': keywords}  # Pass keywords for post-payment generation
     )
     st.markdown(f"[Pay with Stripe]({session.url})")
+
+# Handle success (check query params)
+query_params = st.experimental_get_query_params()
+session_id = query_params.get('session_id', [None])[0]
+if session_id:
+    try:
+        checkout_session = stripe.checkout.Session.retrieve(session_id)
+        if checkout_session.payment_status == 'paid':
+            # Generate detailed strategy using metadata
+            detailed_prompt = f"Generate a detailed content strategy for {checkout_session.metadata['keywords']}. Include 10 article ideas, advanced SEO tips, content calendar, and recommend tools like Semrush (affiliate: https://your-affiliate-link.com)."
+            response = client.chat.completions.create(
+                model="deepseek/deepseek-r1:free",
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant."},
+                    {"role": "user", "content": detailed_prompt}
+                ]
+            )
+            detailed_strategy = response.choices[0].message.content
+
+            # Generate PDF
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.set_font("Arial", size=12)
+            pdf.multi_cell(0, 10, detailed_strategy)
+            pdf_output = pdf.output(dest='S').encode('latin-1')  # Get PDF as bytes
+
+            # Provide download
+            st.success("Payment successful! Download your detailed PDF below.")
+            st.download_button(
+                label="Download Detailed Strategy PDF",
+                data=pdf_output,
+                file_name="detailed_content_strategy.pdf",
+                mime="application/pdf"
+            )
+        else:
+            st.error("Payment not completed.")
+    except Exception as e:
+        st.error(f"Error verifying payment: {str(e)}")
