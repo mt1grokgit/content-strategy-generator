@@ -10,7 +10,7 @@ client = OpenAI(
 )
 
 # Stripe setup using env var
-stripe.api_key = os.environ["STRIPE_SECRET_KEY"]
+# stripe.api_key = os.environ["STRIPE_SECRET_KEY"]
 
 st.title("Content Strategy Generator")
 
