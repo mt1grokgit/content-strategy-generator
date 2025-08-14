@@ -46,16 +46,19 @@ if st.button("Buy Premium Access") and 'basic_strategy' in st.session_state:
             'quantity': 1,
         }],
         mode='payment',
-        success_url=f"{st.secrets['APP_URL']}?session_id={{CHECKOUT_SESSION_ID}}",  # Add to secrets: your app URL
+        success_url=f"{st.secrets['APP_URL']}?session_id={{CHECKOUT_SESSION_ID}}",
         cancel_url=st.secrets['APP_URL'],
-        metadata={'keywords': keywords}  # Pass keywords for post-payment generation
+        metadata={'keywords': keywords}
     )
     st.markdown(f"[Pay with Stripe]({session.url})")
 
-# Handle success (check query params correctly)
-session_id = st.query_params.get('session_id', [None])[0]
+# Handle success (using experimental API for potential bug avoidance)
+query_params = st.experimental_get_query_params()
+session_id = query_params.get('session_id', [None])[0]
+
 if session_id:
-    if not session_id or len(session_id) < 20 or not session_id.startswith('cs_'):  # Basic validation
+    st.write(f"Retrieved session_id: {session_id}")  # Diagnostic logging
+    if not session_id or len(session_id) < 20 or not session_id.startswith('cs_'):
         st.error("Invalid session ID provided. Please try the payment again.")
     else:
         try:
@@ -77,7 +80,7 @@ if session_id:
                 pdf.add_page()
                 pdf.set_font("Arial", size=12)
                 pdf.multi_cell(0, 10, detailed_strategy)
-                pdf_output = pdf.output(dest='S').encode('latin-1')  # Get PDF as bytes
+                pdf_output = pdf.output(dest='S').encode('latin-1')
 
                 # Provide download
                 st.success("Payment successful! Download your detailed PDF below.")
